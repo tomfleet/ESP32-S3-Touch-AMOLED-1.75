@@ -19,6 +19,9 @@
         {
             "name": "05_Spec_Analyzer",
             "path": "05_Spec_Analyzer"
+        },
+        {
+            "path": "06_Spec_Analyzer"
         }
     ],
     "settings": {
