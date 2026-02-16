@@ -20,19 +20,19 @@
 
 #define AROUNDER_CANVAS_WIDTH                466
 #define AROUNDER_CANVAS_HEIGHT               466
-#define AROUNDER_RENDER_FPS                  15
+#define AROUNDER_RENDER_FPS                  10
 //#define AROUNDER_IDLE_UPDATE_MS              500
-#define AROUNDER_MAX_POINTS_PER_RENDER       800
+#define AROUNDER_MAX_POINTS_PER_RENDER       720
 #define AROUNDER_POINT_RADIUS_PX             1
 #define AROUNDER_PERSIST_ALPHA               8
 #define AROUNDER_ENABLE_LIGHT_SHADING        false
-#define AROUNDER_SHADE_STRIDE                8
-#define AROUNDER_SHADE_OPA                   85
-#define AROUNDER_ENABLE_FILLED_AREA          false
-#define AROUNDER_FILL_STRIDE                 8
-#define AROUNDER_FILL_OPA                    85
-#define AROUNDER_FILL_PIXEL_STEP             8
-#define AROUNDER_FILL_MAX_STEPS              12
+#define AROUNDER_SHADE_STRIDE                2
+#define AROUNDER_SHADE_OPA                   65
+#define AROUNDER_ENABLE_FILLED_AREA          true
+#define AROUNDER_FILL_STRIDE                 2
+#define AROUNDER_FILL_OPA                    65
+#define AROUNDER_FILL_PIXEL_STEP             2
+#define AROUNDER_FILL_MAX_STEPS             32
 
 #define AROUNDER_RANGE_MIN_MM                100
 #define AROUNDER_RANGE_MAX_MM                6000
