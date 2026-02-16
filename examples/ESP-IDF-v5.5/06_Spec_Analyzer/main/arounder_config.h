@@ -22,7 +22,7 @@
 #define AROUNDER_RENDER_FPS                  10
 #define AROUNDER_IDLE_UPDATE_MS              500
 #define AROUNDER_MAX_POINTS_PER_RENDER       800
-#define AROUNDER_POINT_RADIUS_PX             2
+#define AROUNDER_POINT_RADIUS_PX             1
 #define AROUNDER_PERSIST_ALPHA               0
 
 #define AROUNDER_RANGE_MIN_MM                100

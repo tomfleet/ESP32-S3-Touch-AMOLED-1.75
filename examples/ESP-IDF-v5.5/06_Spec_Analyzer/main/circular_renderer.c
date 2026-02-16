@@ -74,8 +74,6 @@ static void render_frame(lv_layer_t *layer, const lidar_scan_frame_t *frame)
     int prev_x = 0;
     int prev_y = 0;
     uint8_t prev_brightness = 0;
-    float first_angle_deg = 0.0f;
-    float last_angle_deg = 0.0f;
     int first_x = 0;
     int first_y = 0;
     uint8_t first_brightness = 0;
@@ -105,59 +103,29 @@ static void render_frame(lv_layer_t *layer, const lidar_scan_frame_t *frame)
         int y = (int)lroundf((float)cy - rp * sinf(theta));
 
         uint8_t brightness = AROUNDER_USE_INTENSITY_BRIGHTNESS ? point->intensity : 255;
+        lv_color_t color = lv_color_make(brightness, brightness, brightness);
 
         if (!has_prev) {
             has_prev = true;
-            first_angle_deg = point->angle_deg;
             first_x = x;
             first_y = y;
             first_brightness = brightness;
         } else {
-            int dx = x - prev_x;
-            int dy = y - prev_y;
-            int adx = dx >= 0 ? dx : -dx;
-            int ady = dy >= 0 ? dy : -dy;
-            int max_delta = adx > ady ? adx : ady;
-            int seg_steps = max_delta / 3;
-            if (seg_steps < 1) {
-                seg_steps = 1;
-            }
-            if (seg_steps > 24) {
-                seg_steps = 24;
-            }
-
-            for (int s = 0; s <= seg_steps; s++) {
-                int xi = prev_x + (dx * s) / seg_steps;
-                int yi = prev_y + (dy * s) / seg_steps;
-                uint8_t bi = (uint8_t)(prev_brightness + ((int)(brightness - prev_brightness) * s) / seg_steps);
-                uint8_t fill_v = (uint8_t)(bi / 4);
-                draw_line(layer, cx, cy, xi, yi, lv_color_make(fill_v, fill_v, fill_v), LV_OPA_40);
-            }
-
-            uint8_t edge_v = (uint8_t)((brightness + prev_brightness) / 2);
-            draw_line(layer, prev_x, prev_y, x, y, lv_color_make(edge_v, edge_v, edge_v), LV_OPA_COVER);
+            uint8_t edge_v = (uint8_t)((brightness + prev_brightness) / 2U);
+            lv_color_t edge_color = lv_color_make(edge_v, edge_v, edge_v);
+            draw_line(layer, prev_x, prev_y, x, y, edge_color, LV_OPA_COVER);
         }
 
-        draw_point(layer, x, y, lv_color_make(brightness, brightness, brightness));
-
-        last_angle_deg = point->angle_deg;
+        draw_point(layer, x, y, color);
         prev_x = x;
         prev_y = y;
         prev_brightness = brightness;
     }
 
     if (has_prev && frame->point_count >= 3) {
-        float span = last_angle_deg - first_angle_deg;
-        if (span < 0.0f) {
-            span = -span;
-        }
-        if (span > 300.0f) {
-            draw_line(layer, prev_x, prev_y, first_x, first_y,
-                      lv_color_make((uint8_t)((prev_brightness + first_brightness) / 2),
-                                    (uint8_t)((prev_brightness + first_brightness) / 2),
-                                    (uint8_t)((prev_brightness + first_brightness) / 2)),
-                      LV_OPA_80);
-        }
+        uint8_t close_v = (uint8_t)((prev_brightness + first_brightness) / 2U);
+        lv_color_t close_color = lv_color_make(close_v, close_v, close_v);
+        draw_line(layer, prev_x, prev_y, first_x, first_y, close_color, LV_OPA_80);
     }
 }
 
