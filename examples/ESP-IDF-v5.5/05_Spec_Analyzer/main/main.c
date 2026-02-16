@@ -6,6 +6,7 @@
 #include "freertos/task.h"
 #include "esp_system.h"
 #include "esp_log.h"
+#include "esp_heap_caps.h"
 #include "bsp/esp-bsp.h"
 #include "bsp/display.h"
 #include "esp_dsp.h"
@@ -16,11 +17,12 @@
 #define N_SAMPLES 1024
 #define SAMPLE_RATE 16000
 #define CHANNELS 2
-#define DISPLAY_REFRESH_MS 200
-#define STRIPE_COUNT 64
+#define DISPLAY_REFRESH_MS 100
+#define STRIPE_COUNT 72
+#define MIC_INPUT_GAIN 8.0f
 
-#define CANVAS_WIDTH 300
-#define CANVAS_HEIGHT 150
+#define CANVAS_WIDTH 600
+#define CANVAS_HEIGHT 250
 
 __attribute__((aligned(16))) int16_t raw_data[N_SAMPLES * CHANNELS];
 __attribute__((aligned(16))) float audio_buffer[N_SAMPLES];
@@ -30,6 +32,9 @@ __attribute__((aligned(16))) float spectrum[N_SAMPLES / 2];
 
 float display_spectrum[STRIPE_COUNT];
 float peak[STRIPE_COUNT];
+
+static lv_draw_buf_t canvas_draw_buf;
+static void *canvas_buf = NULL;
 
 void audio_fft_task(void *pvParameters)
 {
@@ -65,7 +70,9 @@ void audio_fft_task(void *pvParameters)
         {
             int16_t left = raw_data[i * CHANNELS];
             int16_t right = raw_data[i * CHANNELS + 1];
-            audio_buffer[i] = (left + right) / (2.0f * 32768.0f);
+            float sample = (left + right) / (2.0f * 32768.0f);
+            sample *= MIC_INPUT_GAIN;
+            audio_buffer[i] = fmaxf(-1.0f, fminf(1.0f, sample));
         }
 
         dsps_mul_f32(audio_buffer, wind, audio_buffer, N_SAMPLES, 1, 1, 1);
@@ -172,13 +179,30 @@ static void timer_cb(lv_timer_t *timer)
 
 void lv_example_canvas_10(void)
 {
-    LV_DRAW_BUF_DEFINE_STATIC(draw_buf, CANVAS_WIDTH, CANVAS_HEIGHT, LV_COLOR_FORMAT_RGB565);
-    LV_DRAW_BUF_INIT_STATIC(draw_buf);
+    if (canvas_buf == NULL)
+    {
+        uint32_t canvas_buf_size = LV_DRAW_BUF_SIZE(CANVAS_WIDTH, CANVAS_HEIGHT, LV_COLOR_FORMAT_RGB565);
+        canvas_buf = heap_caps_aligned_alloc(LV_DRAW_BUF_ALIGN, canvas_buf_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        if (canvas_buf == NULL)
+        {
+            ESP_LOGE(TAG, "Canvas buffer alloc failed (%lu bytes)", (unsigned long)canvas_buf_size);
+            return;
+        }
+
+        if (lv_draw_buf_init(&canvas_draw_buf, CANVAS_WIDTH, CANVAS_HEIGHT, LV_COLOR_FORMAT_RGB565,
+                             LV_STRIDE_AUTO, canvas_buf, canvas_buf_size) != LV_RESULT_OK)
+        {
+            ESP_LOGE(TAG, "Canvas draw buffer init failed");
+            return;
+        }
+
+        lv_draw_buf_set_flag(&canvas_draw_buf, LV_IMAGE_FLAGS_MODIFIABLE);
+    }
 
     lv_obj_t *canvas = lv_canvas_create(lv_screen_active());
     lv_obj_set_size(canvas, CANVAS_WIDTH, CANVAS_HEIGHT);
     lv_obj_center(canvas);
-    lv_canvas_set_draw_buf(canvas, &draw_buf);
+    lv_canvas_set_draw_buf(canvas, &canvas_draw_buf);
 
     lv_timer_create(timer_cb, 33, canvas);
 }

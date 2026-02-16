@@ -1,0 +1,27 @@
+{
+    "folders": [
+        {
+            "name": "01_AXP2101",
+            "path": "01_AXP2101"
+        },
+        {
+            "name": "02_lvgl_demo_v9",
+            "path": "02_lvgl_demo_v9"
+        },
+        {
+            "name": "03_esp-brookesia",
+            "path": "03_esp-brookesia"
+        },
+        {
+            "name": "04_Immersive_block",
+            "path": "04_Immersive_block"
+        },
+        {
+            "name": "05_Spec_Analyzer",
+            "path": "05_Spec_Analyzer"
+        }
+    ],
+    "settings": {
+        "idf.currentSetup": "D:\\dev\\esp\\sdk\\v5.5\\esp-idf"
+    }
+}
