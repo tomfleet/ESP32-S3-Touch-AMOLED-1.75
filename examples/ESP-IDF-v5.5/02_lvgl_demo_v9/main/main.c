@@ -18,9 +18,15 @@ void app_main(void)
 
     bsp_display_lock(-1);
 
-    // lv_demo_music();
+#if defined(LV_USE_DEMO_BENCHMARK) && LV_USE_DEMO_BENCHMARK
     lv_demo_benchmark();
-    // lv_demo_widgets();
+#elif defined(LV_USE_DEMO_WIDGETS) && LV_USE_DEMO_WIDGETS
+    lv_demo_widgets();
+#elif defined(LV_USE_DEMO_MUSIC)
+    lv_demo_music();
+#else
+    ESP_LOGW("lvgl_demo_v9", "No LVGL demo enabled in config");
+#endif
 
     bsp_display_unlock();
 }
