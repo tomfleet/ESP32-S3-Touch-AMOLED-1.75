@@ -11,5 +11,6 @@ idf_component_register(
         nvs_flash
         esp_event
         esp_netif
+        esp_timer
         esp_wifi
         waveshare__esp32_s3_touch_amoled_1_75)

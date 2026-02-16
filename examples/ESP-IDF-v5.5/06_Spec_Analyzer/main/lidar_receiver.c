@@ -19,6 +19,8 @@ static const char *TAG = "lidar_rx";
 static SemaphoreHandle_t s_lock;
 static TaskHandle_t s_task_handle;
 static StaticSemaphore_t s_lock_buffer;
+static StaticTask_t s_task_buffer;
+static StackType_t s_task_stack[AROUNDER_RX_TASK_STACK_BYTES / sizeof(StackType_t)];
 
 static EXT_RAM_BSS_ATTR lidar_scan_frame_t s_latest_frame;
 static EXT_RAM_BSS_ATTR lidar_scan_frame_t s_rx_frame;
@@ -27,8 +29,11 @@ static lidar_stats_t s_stats;
 static uint32_t s_last_seen_scan_id = UINT32_MAX;
 static TickType_t s_last_stats_log_tick;
 static TickType_t s_last_accept_tick;
+static TickType_t s_last_packet_tick;
 static uint32_t s_last_stats_raw;
 static uint32_t s_last_stats_frames;
+static uint32_t s_socket_timeouts;
+static uint32_t s_socket_errors;
 static char s_last_sender_ip[16];
 static uint16_t s_last_sender_port;
 static EXT_RAM_BSS_ATTR uint8_t s_rx_buf[AROUNDER_RX_BUF_BYTES];
@@ -46,6 +51,7 @@ static void maybe_log_receiver_stats(void)
     uint32_t rx_hz_milli = 0;
     uint32_t frame_hz_milli = 0;
     uint32_t elapsed_ms = (prev_tick == 0) ? 0 : (uint32_t)pdTICKS_TO_MS(now - prev_tick);
+    uint32_t since_last_packet_ms = (s_last_packet_tick == 0) ? 0 : (uint32_t)pdTICKS_TO_MS(now - s_last_packet_tick);
     if (elapsed_ms > 0) {
         uint32_t delta_raw = s_stats.packets_seen_raw - s_last_stats_raw;
         uint32_t delta_frames = s_stats.frames_accepted - s_last_stats_frames;
@@ -57,7 +63,7 @@ static void maybe_log_receiver_stats(void)
     s_last_stats_frames = s_stats.frames_accepted;
 
     ESP_LOGI(TAG,
-             "stats raw=%lu frames=%lu bad_json=%lu missing=%lu dup_old=%lu gaps=%lu last_scan=%lu rx_hz=%lu.%03lu frame_hz=%lu.%03lu sender=%s:%u",
+             "stats raw=%lu frames=%lu bad_json=%lu missing=%lu dup_old=%lu gaps=%lu last_scan=%lu rx_hz=%lu.%03lu frame_hz=%lu.%03lu sender=%s:%u idle_ms=%lu sock_to=%lu sock_err=%lu",
              (unsigned long)s_stats.packets_seen_raw,
              (unsigned long)s_stats.frames_accepted,
              (unsigned long)s_stats.packets_bad_json,
@@ -70,7 +76,17 @@ static void maybe_log_receiver_stats(void)
              (unsigned long)(frame_hz_milli / 1000UL),
              (unsigned long)(frame_hz_milli % 1000UL),
              s_last_sender_ip[0] ? s_last_sender_ip : "-",
-             s_last_sender_port);
+             s_last_sender_port,
+             (unsigned long)since_last_packet_ms,
+             (unsigned long)s_socket_timeouts,
+             (unsigned long)s_socket_errors);
+
+    if (s_stats.packets_seen_raw == 0 && since_last_packet_ms > 10000) {
+        ESP_LOGW(TAG,
+                 "No UDP packets seen yet on %s:%d; verify sender target IP/port and subnet",
+                 AROUNDER_BIND_IP,
+                 AROUNDER_BIND_PORT);
+    }
 }
 
 static void publish_frame(const lidar_scan_frame_t *frame)
@@ -168,10 +184,20 @@ static void receiver_task(void *arg)
         socklen_t src_len = sizeof(src_addr);
         ssize_t received = recvfrom(sock, s_rx_buf, sizeof(s_rx_buf), 0, (struct sockaddr *)&src_addr, &src_len);
         if (received <= 0) {
+            if (received < 0) {
+                int sock_errno = errno;
+                if (sock_errno == EAGAIN || sock_errno == EWOULDBLOCK) {
+                    s_socket_timeouts++;
+                } else {
+                    s_socket_errors++;
+                    ESP_LOGW(TAG, "recvfrom failed errno=%d", sock_errno);
+                }
+            }
             maybe_log_receiver_stats();
             continue;
         }
 
+        s_last_packet_tick = xTaskGetTickCount();
         s_stats.packets_seen_raw++;
 
         while (1) {
@@ -223,6 +249,7 @@ static void receiver_task(void *arg)
 esp_err_t lidar_receiver_start(void)
 {
     if (s_task_handle != NULL) {
+        ESP_LOGI(TAG, "receiver task already running");
         return ESP_OK;
     }
 
@@ -233,16 +260,24 @@ esp_err_t lidar_receiver_start(void)
         }
     }
 
-    BaseType_t ok = xTaskCreate(receiver_task,
-                                "lidar_rx",
-                                AROUNDER_RX_TASK_STACK_BYTES,
-                                NULL,
-                                AROUNDER_RX_TASK_PRIORITY,
-                                &s_task_handle);
-    if (ok != pdPASS) {
+    s_task_handle = xTaskCreateStatic(receiver_task,
+                                      "lidar_rx",
+                                      AROUNDER_RX_TASK_STACK_BYTES / sizeof(StackType_t),
+                                      NULL,
+                                      AROUNDER_RX_TASK_PRIORITY,
+                                      s_task_stack,
+                                      &s_task_buffer);
+    if (s_task_handle == NULL) {
         s_task_handle = NULL;
         return ESP_ERR_NO_MEM;
     }
+
+    ESP_LOGI(TAG,
+             "receiver task started: stack=%u bytes prio=%d bind=%s:%d",
+             (unsigned)AROUNDER_RX_TASK_STACK_BYTES,
+             AROUNDER_RX_TASK_PRIORITY,
+             AROUNDER_BIND_IP,
+             AROUNDER_BIND_PORT);
 
     return ESP_OK;
 }

@@ -20,10 +20,16 @@ void app_main(void)
 
     ESP_ERROR_CHECK(arounder_renderer_start());
 
-    ESP_ERROR_CHECK(arounder_wifi_connect());
+    esp_err_t wifi_err = arounder_wifi_connect();
+    if (wifi_err != ESP_OK) {
+        ESP_LOGE(TAG, "Wi-Fi connect failed (%s); not starting lidar receiver", esp_err_to_name(wifi_err));
+        return;
+    }
 
     esp_err_t rx_err = lidar_receiver_start();
     if (rx_err != ESP_OK) {
         ESP_LOGE(TAG, "lidar_receiver_start failed: %s", esp_err_to_name(rx_err));
+    } else {
+        ESP_LOGI(TAG, "LiDAR receiver started");
     }
 }
