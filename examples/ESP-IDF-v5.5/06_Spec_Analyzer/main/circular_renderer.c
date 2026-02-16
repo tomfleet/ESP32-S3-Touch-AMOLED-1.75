@@ -286,6 +286,9 @@ static void draw_line(lv_layer_t *layer, int x1, int y1, int x2, int y2, lv_colo
 
 static void draw_alert_radius_ring(lv_layer_t *layer, int cx, int cy, int radius_px)
 {
+
+    return; // Disabled for now as it causes too much performance overhead. Will be reworked later.
+    
     if (radius_px <= 1) {
         return;
     }

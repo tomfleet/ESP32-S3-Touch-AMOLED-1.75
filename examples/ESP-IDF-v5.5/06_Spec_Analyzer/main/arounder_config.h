@@ -5,7 +5,7 @@
 #define AROUNDER_BIND_IP                     "0.0.0.0"
 #define AROUNDER_BIND_PORT                   8765
 #define AROUNDER_RX_BUF_BYTES                4096
-#define AROUNDER_SOCKET_RECV_TIMEOUT_MS      50
+#define AROUNDER_SOCKET_RECV_TIMEOUT_MS      80
 #define AROUNDER_SOCKET_RCVBUF_BYTES         (256 * 1024)
 #define AROUNDER_RX_TASK_STACK_BYTES         (6 * 1024)
 #define AROUNDER_RX_TASK_PRIORITY            10
@@ -20,18 +20,18 @@
 
 #define AROUNDER_CANVAS_WIDTH                466
 #define AROUNDER_CANVAS_HEIGHT               466
-#define AROUNDER_RENDER_FPS                  12
-#define AROUNDER_IDLE_UPDATE_MS              500
+#define AROUNDER_RENDER_FPS                  15
+//#define AROUNDER_IDLE_UPDATE_MS              500
 #define AROUNDER_MAX_POINTS_PER_RENDER       800
 #define AROUNDER_POINT_RADIUS_PX             1
-#define AROUNDER_PERSIST_ALPHA               4
+#define AROUNDER_PERSIST_ALPHA               8
 #define AROUNDER_ENABLE_LIGHT_SHADING        false
-#define AROUNDER_SHADE_STRIDE                5
+#define AROUNDER_SHADE_STRIDE                8
 #define AROUNDER_SHADE_OPA                   85
-#define AROUNDER_ENABLE_FILLED_AREA          true
-#define AROUNDER_FILL_STRIDE                 5
+#define AROUNDER_ENABLE_FILLED_AREA          false
+#define AROUNDER_FILL_STRIDE                 8
 #define AROUNDER_FILL_OPA                    85
-#define AROUNDER_FILL_PIXEL_STEP             5
+#define AROUNDER_FILL_PIXEL_STEP             8
 #define AROUNDER_FILL_MAX_STEPS              12
 
 #define AROUNDER_RANGE_MIN_MM                100
